@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Web Walkie Talkie</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e293b">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        
+        .channel-machine {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            border-radius: 16px;
+            border: 2px solid #334155;
+        }
+        
+        .radio-light {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #334155;
+            transition: all 0.3s ease;
+        }
+        
+        .radio-light.active {
+            background-color: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, #3b82f6, #1d4ed8);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(to right, #ef4444, #b91c1c);
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4);
+        }
+        
+        #signalStrength {
+            height: 4px;
+            background: linear-gradient(to right, #ef4444, #f97316, #22c55e);
+        }
+        
+        .frequency-display {
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px #3b82f6;
+        }
+    .touch-target {
+            padding: 1.5rem 1rem;
+        }
+        
+        @media (max-width: 640px) {
+            .channel-machine {
+                border-radius: 0;
+                border: none;
+            }
+            
+            .grid-cols-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            #talkBtn {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="channel-machine w-full max-w-md p-4 sm:p-6 relative overflow-hidden" style="min-height: 100vh;">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold">WEB WALKIE TALKIE</h1>
+                <p class="text-sm text-slate-400">Secure P2P Voice Channel</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div class="radio-light" id="connectionLight"></div>
+                <div class="text-xs">STATUS</div>
+            </div>
+        </div>
+        
+        <div class="mb-8 text-center">
+            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/2bf881db-8f60-408d-9769-6d0cb3fd12e3.png" alt="Walkie talkie radio interface with frequency dials and buttons" class="w-full rounded-lg mb-4" />
+            
+            <div class="frequency-display text-3xl font-bold mb-4" id="channelDisplay">CH-0000</div>
+            
+            <div id="signalStrength" class="w-full rounded-full mb-2"></div>
+            <div class="text-xs text-slate-400 mb-6">SIGNAL STRENGTH</div>
+        </div>
+        
+        <div class="flex flex-col space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="channelName" class="block text-sm font-medium mb-1">CHANNEL NAME</label>
+                    <input type="text" id="channelName" class="w-full bg-slate-800 rounded-md px-4 py-2 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter channel name">
+                </div>
+                <div>
+                    <label for="username" class="block text-sm font-medium mb-1">YOUR CALL SIGN</label>
+                    <input type="text" id="username" class="w-full bg-slate-800 rounded-md px-4 py-2 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Your nickname">
+                </div>
+            </div>
+            
+            <button id="createChannelBtn" class="btn-primary text-white font-bold py-3 px-4 rounded-md transition-all">
+                CREATE NEW CHANNEL
+            </button>
+            
+            <div id="connectionSection" class="hidden">
+                <div class="flex justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                        <span id="connectedUsers">0</span> USERS CONNECTED
+                    </div>
+                    <button id="copyLinkBtn" class="text-blue-400 text-sm hover:text-blue-300">
+                        COPY INVITE LINK
+                    </button>
+                </div>
+                
+                <div class="relative group">
+                    <button id="talkBtn" class="btn-primary w-full text-white font-bold py-4 px-4 rounded-md relative overflow-hidden touch-target" style="touch-action: manipulation;">
+                        <span class="relative z-10">HOLD TO TALK</span>
+                        <span class="absolute inset-0 bg-blue-600 opacity-0 group-hover:opacity-20 transition-opacity"></span>
+                    </button>
+                </div>
+                
+                <button id="leaveChannelBtn" class="btn-danger text-white font-bold py-3 px-4 rounded-md mt-2 w-full">
+                    LEAVE CHANNEL
+                </button>
+            </div>
+        </div>
+        
+        <div id="joinSection" class="hidden mt-6">
+            <div class="border-t border-slate-700 pt-4">
+                <h3 class="font-medium mb-2">JOIN A CHANNEL</h3>
+                <div class="flex">
+                    <input type="text" id="channelLink" class="flex-grow bg-slate-800 rounded-l-md px-4 py-2 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Paste channel link">
+                    <button id="joinChannelBtn" class="btn-primary text-white font-bold py-2 px-4 rounded-r-md">
+                        JOIN
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="fixed bottom-4 left-4 right-4 bg-slate-800 rounded-lg p-3 shadow-lg hidden" id="notification">
+        <div class="flex items-center">
+            <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+            <span id="notificationText">Notification text</span>
+        </div>
+    </div>
+    
+    <audio id="beepSound" src="https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3"></audio>
+    <audio id="errorSound" src="https://assets.mixkit.co/sfx/preview/mixkit-alert-quick-bleep-880.mp3"></audio>
+    
+    <script>
+        // Install PWA prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window.installPrompt = e;
+            showNotification('Install this app for better experience!', true);
+        });
+
+        // Global variables
+        let peerConnection;
+        let dataChannel;
+        let localStream;
+        let currentChannelId = '';
+        let currentUsername = '';
+        let connectedUsers = [];
+        
+        // DOM elements
+        const channelNameInput = document.getElementById('channelName');
+        const usernameInput = document.getElementById('username');
+        const createChannelBtn = document.getElementById('createChannelBtn');
+        const connectionSection = document.getElementById('connectionSection');
+        const joinSection = document.getElementById('joinSection');
+        const channelDisplay = document.getElementById('channelDisplay');
+        const connectionLight = document.getElementById('connectionLight');
+        const talkBtn = document.getElementById('talkBtn');
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        const leaveChannelBtn = document.getElementById('leaveChannelBtn');
+        const channelLinkInput = document.getElementById('channelLink');
+        const joinChannelBtn = document.getElementById('joinChannelBtn');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notificationText');
+        const connectedUsersDisplay = document.getElementById('connectedUsers');
+        const beepSound = document.getElementById('beepSound');
+        const errorSound = document.getElementById('errorSound');
+        
+        // Initialize app
+        init();
+        
+        // Register service worker if supported
+        if('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('Service Worker registered', reg))
+                .catch(err => console.log('Service Worker registration failed', err));
+        }
+        
+        function init() {
+            setupEventListeners();
+            updateConnectionStatus('disconnected');
+            
+            // Show join section if there's a channel link in the URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const channelParam = urlParams.get('channel');
+            
+            if (channelParam) {
+                channelLinkInput.value = `${window.location.origin}${window.location.pathname}?channel=${channelParam}`;
+                joinSection.classList.remove('hidden');
+            }
+        }
+        
+        function setupEventListeners() {
+            // Create channel button
+            createChannelBtn.addEventListener('click', createChannel);
+            
+            // Push-to-talk button
+            talkBtn.addEventListener('mousedown', startTalking);
+            talkBtn.addEventListener('touchstart', startTalking);
+            talkBtn.addEventListener('mouseup', stopTalking);
+            talkBtn.addEventListener('mouseleave', stopTalking);
+            talkBtn.addEventListener('touchend', stopTalking);
+            
+            // Copy link button
+            copyLinkBtn.addEventListener('click', copyChannelLink);
+            
+            // Leave channel button
+            leaveChannelBtn.addEventListener('click', leaveChannel);
+            
+            // Join channel button
+            joinChannelBtn.addEventListener('click', joinChannel);
+            
+            // Simulate signal strength fluctuations
+            setInterval(() => {
+                const signalBar = document.getElementById('signalStrength');
+                const strength = Math.min(100, Math.floor(Math.random() * 70) + 30);
+                signalBar.style.width = `${strength}%`;
+            }, 3000);
+        }
+        
+        function createChannel() {
+            const channelName = channelNameInput.value.trim();
+            const username = usernameInput.value.trim();
+            
+            if (!channelName || !username) {
+                showNotification('Please enter both channel name and your call sign');
+                playSound(errorSound);
+                return;
+            }
+            
+            playSound(beepSound);
+            
+            // Generate a random 4-digit channel ID
+            currentChannelId = Math.floor(1000 + Math.random() * 9000).toString();
+            currentUsername = username;
+            
+            channelDisplay.textContent = `${channelName.toUpperCase().substr(0, 10)}-${currentChannelId}`;
+            
+            // Hide create section, show connection section
+            createChannelBtn.disabled = true;
+            connectionSection.classList.remove('hidden');
+            joinSection.classList.add('hidden');
+            
+            // Initialize WebRTC connection
+            initializeConnection(true);
+            
+            // Generate shareable link
+            const shareLink = `${window.location.origin}${window.location.pathname}?channel=${currentChannelId}`;
+            channelLinkInput.value = shareLink;
+            
+            showNotification(`Channel "${channelName}" created!`, true);
+        }
+        
+        function joinChannel() {
+            const channelLink = channelLinkInput.value.trim();
+            const username = usernameInput.value.trim();
+            
+            if (!channelLink || !username) {
+                showNotification('Please paste channel link and enter your call sign');
+                playSound(errorSound);
+                return;
+            }
+            
+            // Extract channel ID from URL
+            const url = new URL(channelLink);
+            const searchParams = new URLSearchParams(url.search);
+            const channelId = searchParams.get('channel');
+            
+            if (!channelId) {
+                showNotification('Invalid channel link');
+                playSound(errorSound);
+                return;
+            }
+            
+            playSound(beepSound);
+            
+            currentChannelId = channelId;
+            currentUsername = username;
+            
+            const channelName = channelLinkInput.value.includes('?channel=') ? 
+                channelLinkInput.value.split('?channel=')[0].split('/').pop() || 'CH' : 
+                'CH';
+            
+            channelDisplay.textContent = `${channelName.toUpperCase().substr(0, 10)}-${currentChannelId}`;
+            
+            // Hide create section, show connection section
+            createChannelBtn.disabled = true;
+            connectionSection.classList.remove('hidden');
+            joinSection.classList.add('hidden');
+            
+            // Initialize WebRTC connection
+            initializeConnection(false);
+            
+            showNotification(`Joined channel "${channelName}"!`, true);
+        }
+        
+        async function initializeConnection(isInitiator) {
+            try {
+                updateConnectionStatus('connecting');
+                
+                // Get audio stream
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                localStream = stream;
+                
+                // Create RTCPeerConnection
+                const configuration = {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        {
+                            urls: 'turn:numb.viagenie.ca',
+                            credential: 'muazkh',
+                            username: 'webrtc@live.com'
+                        }
+                    ]
+                };
+                
+                peerConnection = new RTCPeerConnection(configuration);
+                
+                // Add local stream to peer connection
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                // Set up event handlers
+                peerConnection.onicecandidate = handleICECandidateEvent;
+                peerConnection.oniceconnectionstatechange = handleICEConnectionStateChange;
+                peerConnection.ontrack = handleTrackEvent;
+                
+                if (isInitiator) {
+                    // Create data channel
+                    dataChannel = peerConnection.createDataChannel('walkieTalkie');
+                    setupDataChannel();
+                    
+                    // Create offer
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    
+                    // Normally you would send the offer to the remote peer via signaling server
+                    // For this simple demo, we'll just simulate connecting
+                    setTimeout(() => {
+                        updateConnectionStatus('connected');
+                        simulateUserConnected();
+                    }, 1500);
+                } else {
+                    // Listen for data channel
+                    peerConnection.ondatachannel = event => {
+                        dataChannel = event.channel;
+                        setupDataChannel();
+                    };
+                    
+                    // Normally you would get an offer from the remote peer via signaling server
+                    // For this simple demo, we'll just simulate connecting
+                    setTimeout(() => {
+                        updateConnectionStatus('connected');
+                        simulateUserConnected();
+                    }, 1500);
+                }
+            } catch (error) {
+                console.error('Error initializing connection:', error);
+                updateConnectionStatus('error');
+                showNotification('Connection failed. Please try again.');
+                playSound(errorSound);
+            }
+        }
+        
+        function setupDataChannel() {
+            dataChannel.onopen = () => {
+                console.log('Data channel opened');
+                updateConnectionStatus('connected');
+            };
+            
+            dataChannel.onclose = () => {
+                console.log('Data channel closed');
+                updateConnectionStatus('disconnected');
+            };
+            
+            dataChannel.onmessage = event => {
+                const message = JSON.parse(event.data);
+                
+                if (message.type === 'user-joined') {
+                    if (!connectedUsers.includes(message.username)) {
+                        connectedUsers.push(message.username);
+                        updateUserCount();
+                        showNotification(`${message.username} joined the channel`, true);
+                    }
+                } else if (message.type === 'user-left') {
+                    connectedUsers = connectedUsers.filter(u => u !== message.username);
+                    updateUserCount();
+                    showNotification(`${message.username} left the channel`);
+                } else if (message.type === 'voice') {
+                    // In a real app, we would relay the voice data to the remote peer
+                    console.log('Voice data received');
+                }
+            };
+        }
+        
+        function simulateUserConnected() {
+            // Simulate other users connecting
+            const fakeUsers = ['Ghost', 'Echo', 'Raven', 'Hawk'];
+            const randomUsers = fakeUsers.slice(0, Math.floor(Math.random() * fakeUsers.length) + 1);
+            
+            connectedUsers = randomUsers;
+            updateUserCount();
+            
+            // Simulate user join notifications
+            randomUsers.forEach((user, i) => {
+                setTimeout(() => {
+                    showNotification(`${user} joined the channel`, true);
+                }, i * 1000);
+            });
+        }
+        
+        function updateUserCount() {
+            connectedUsersDisplay.textContent = connectedUsers.length;
+        }
+        
+        function startTalking() {
+            if (connectionLight.dataset.status !== 'connected') {
+                playSound(errorSound);
+                showNotification('Not connected to channel');
+                return;
+            }
+            
+            connectionLight.classList.add('active');
+            
+            // Normally you would send voice data over WebRTC
+            // For the demo, we'll just simulate transmission
+        }
+        
+        function stopTalking() {
+            connectionLight.classList.remove('active');
+        }
+        
+        function copyChannelLink() {
+            navigator.clipboard.writeText(channelLinkInput.value)
+                .then(() => {
+                    showNotification('Channel link copied! Share this link and tell friends to install the app', true);
+                    playSound(beepSound);
+                })
+                .catch(err => {
+                    console.error('Failed to copy:', err);
+                    showNotification('Failed to copy link');
+                    playSound(errorSound);
+                });
+        }
+        
+        function leaveChannel() {
+            playSound(beepSound);
+            
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            connectionSection.classList.add('hidden');
+            createChannelBtn.disabled = false;
+            channelNameInput.value = '';
+            usernameInput.value = '';
+            connectedUsers = [];
+            
+            updateConnectionStatus('disconnected');
+            
+            showNotification('Left the channel', false);
+        }
+        
+        function handleICECandidateEvent(event) {
+            if (event.candidate) {
+                // Send the candidate to the remote peer
+            }
+        }
+        
+        function handleICEConnectionStateChange() {
+            if (peerConnection) {
+                console.log('ICE connection state:', peerConnection.iceConnectionState);
+            }
+        }
+        
+        function handleTrackEvent(event) {
+            // In a real app, we would handle the remote audio track here
+            // const audioElement = document.createElement('audio');
+            // audioElement.srcObject = event.streams[0];
+            // audioElement.play();
+        }
+        
+        function updateConnectionStatus(status) {
+            connectionLight.classList.remove('active', 'error', 'connecting');
+            
+            switch (status) {
+                case 'connected':
+                    connectionLight.classList.add('active');
+                    connectionLight.dataset.status = 'connected';
+                    break;
+                case 'connecting':
+                    connectionLight.classList.add('connecting');
+                    connectionLight.dataset.status = 'connecting';
+                    break;
+                case 'error':
+                    connectionLight.classList.add('error');
+                    connectionLight.dataset.status = 'error';
+                    break;
+                default:
+                    connectionLight.dataset.status = 'disconnected';
+            }
+        }
+        
+        function showNotification(message, isSuccess = false) {
+            notificationText.textContent = message;
+            
+            if (isSuccess) {
+                notification.querySelector('div').classList.remove('bg-red-500');
+                notification.querySelector('div').classList.add('bg-green-500');
+            } else {
+                notification.querySelector('div').classList.remove('bg-green-500');
+                notification.querySelector('div').classList.add('bg-red-500');
+            }
+            
+            notification.classList.remove('hidden');
+            
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
+        }
+        
+        function showInstallPrompt() {
+            if(window.installPrompt) {
+                window.installPrompt.prompt();
+                window.installPrompt.userChoice.then((choice) => {
+                    if(choice.outcome === 'accepted') {
+                        showNotification('App installed successfully!', true);
+                    }
+                    window.installPrompt = null;
+                });
+            }
+        }
+
+        function playSound(audioElement) {
+            audioElement.currentTime = 0;
+            audioElement.play();
+        }
+    </script>
+</body>
+</html>
